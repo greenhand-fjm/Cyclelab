@@ -1,0 +1,23 @@
+# Qoder 部署记录与构建产物
+.CycleLab.qoder.site
+dist/
+
+# 开发过程中的测试报告、截图和发帖素材（README 用到的图已复制到 docs/images）
+reports/
+发帖包/
+作品帖.md
+PROGRESS.md
+
+# 密钥：真实的环境变量只放在 .env，永远不要提交
+.env
+.env.*
+!.env.example
+
+# 系统 / 编辑器 / Python
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/

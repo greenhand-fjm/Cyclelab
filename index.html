@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CycleLab - 工程热力学循环交互学习器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>CycleLab</h1>
+    <p class="positioning">适用于《工程热力学》气体动力循环章节的复习与课堂演示</p>
+    <button class="tour-help" id="tourHelp" type="button" aria-label="重新打开使用引导">?</button>
+    <p class="subtitle">工程热力学循环交互学习器 — 拖动参数滑块，实时观察 p-v 图、T-s 图与热效率变化</p>
+  </header>
+
+  <main class="container">
+    <section class="panel panel-left">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-cycle="otto">奥托循环</button>
+        <button class="tab" data-cycle="diesel">狄塞尔循环</button>
+        <button class="tab" data-cycle="brayton">布雷顿循环</button>
+      </div>
+      <div class="share-toolbar">
+        <button id="copyLink" type="button">复制链接</button>
+        <span id="shareStatus" role="status" aria-live="polite"></span>
+        <input id="shareLink" type="text" readonly hidden aria-label="当前工况分享链接">
+      </div>
+      <div class="ai-section ai-parse-top" data-ai hidden>
+        <h3>AI 读题</h3>
+        <textarea id="aiQuestionInput" placeholder="粘贴一道循环计算题（中文），例如：某奥托循环压缩比为 9，压缩开始时空气为 100 kPa、27 °C，循环最高温度为 1500 K，求热效率。" maxlength="1000"></textarea>
+        <button class="btn-ai" id="aiParseBtn">识别题目</button>
+        <div id="aiParseResult" class="ai-result"></div>
+      </div>
+      <div class="params" id="params"></div>
+    </section>
+
+    <section class="panel panel-right">
+      <section class="quiz-panel" aria-labelledby="quizTitle">
+        <div class="quiz-heading"><h2 id="quizTitle">先猜后看 · 预测练习</h2><button id="quizStart" type="button">开始练习</button></div>
+        <p id="quizIntro">先预测，再观察图像与计算结果。完成或退出后恢复你原来的工况。</p>
+        <div id="quizBody" hidden>
+          <p id="quizProgress" class="quiz-progress" aria-live="polite"></p>
+          <h3 id="quizQuestion" tabindex="-1"></h3>
+          <div id="quizChoices" class="quiz-choices" role="group" aria-labelledby="quizQuestion"></div>
+          <p id="quizStatus" role="status"></p>
+          <div id="quizExplanation" hidden></div>
+          <div class="quiz-actions"><button id="quizNext" type="button" hidden>下一题</button><button id="quizExit" type="button">退出并恢复工况</button></div>
+        </div>
+      </section>
+      <section class="compare-panel" aria-labelledby="compareTitle">
+        <div class="compare-heading"><h2 id="compareTitle">循环对比</h2><label class="ref-toggle"><input id="compareToggle" type="checkbox"> 对比模式</label><button id="comparePreset" type="button">相同压缩比对比</button></div>
+        <div id="compareBody" hidden>
+          <p class="compare-note">蓝色实线与橙色虚线分别表示两个循环。参数只用于对比；关闭后恢复原视图。灰色虚线为各自默认工况。</p>
+          <div class="compare-editors" id="compareEditors"></div>
+        </div>
+      </section>
+      <div class="results" id="results"></div>
+      <p id="regenerationNote" class="area-explanation" role="status" hidden></p>
+
+      <div class="diagrams">
+        <div class="diagram-box">
+          <div class="diagram-toolbar">
+            <h3>p-v 图</h3>
+            <label class="ref-toggle"><input type="checkbox" id="pvAreaToggle"> 显示面积含义</label>
+            <div class="diagram-controls">
+              <label class="ref-toggle"><input type="checkbox" id="pvRefToggle" checked> 参考曲线</label>
+              <button class="btn-reset" id="pvReset">重置视图</button>
+            </div>
+          </div>
+          <canvas id="pvCanvas"></canvas>
+          <div class="diagram-legend" id="pvLegend"></div>
+          <div class="area-values" id="pvAreaValues" hidden></div>
+        </div>
+        <div class="diagram-box">
+          <div class="diagram-toolbar">
+            <h3>T-s 图</h3>
+            <label class="ref-toggle"><input type="checkbox" id="tsAreaToggle"> 显示面积含义</label>
+            <div class="diagram-controls">
+              <label class="ref-toggle"><input type="checkbox" id="tsRefToggle" checked> 参考曲线</label>
+              <button class="btn-reset" id="tsReset">重置视图</button>
+            </div>
+          </div>
+          <canvas id="tsCanvas"></canvas>
+          <div class="diagram-legend" id="tsLegend"></div>
+          <div class="area-values" id="tsAreaValues" hidden></div>
+        </div>
+      </div>
+
+      <section id="compareResults" class="table-section" aria-label="循环对比结果" hidden>
+        <h3>循环对比结果</h3><div class="table-wrap"><table id="compareTable"></table></div>
+      </section>
+      <p class="area-explanation" id="areaExplanation" hidden>T-s 图上过程线下方的面积等于该过程的热量；循环围成的面积等于净功。浅红为吸热面积（包含浅蓝的放热面积），斜线为净功。</p>
+
+      <div class="table-section" id="stateTableSection">
+        <h3>状态点参数</h3>
+        <div class="table-wrap">
+          <table id="stateTable"></table>
+        </div>
+      </div>
+
+      <details class="derivation" id="derivationSection" open>
+        <summary>推导过程</summary>
+        <div id="derivationContent"></div>
+      </details>
+
+      <div class="ai-section" data-ai hidden>
+        <h3>问问 AI 助教</h3>
+        <div class="ai-examples">
+          <button class="btn-example" data-q="为什么压缩比越高，效率越高？">为什么压缩比越高，效率越高？</button>
+          <button class="btn-example" data-q="同样的压缩比，狄塞尔为什么比奥托效率低？">同样的压缩比，狄塞尔为什么比奥托效率低？</button>
+          <button class="btn-example" data-q="实际发动机的效率为什么远低于这个值？">实际发动机的效率为什么远低于这个值？</button>
+        </div>
+        <textarea id="aiAskInput" placeholder="输入你的问题..." maxlength="200"></textarea>
+        <button class="btn-ai" id="aiAskBtn">提问</button>
+        <div id="aiAskResult" class="ai-result"></div>
+        <div class="ai-disclaimer">AI 回答仅供参考，数值以页面计算结果为准。</div>
+      </div>
+
+      <div class="eff-curve-section" id="effCurveSection">
+        <h3 id="effCurveTitle">热效率 - 压缩比曲线</h3>
+        <canvas id="effCanvas"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>模型假设：空气标准循环 | 冷空气假设（比热为常数，k=1.4）| 压缩与膨胀等熵，回热忽略压降</p>
+    <p data-ai hidden>AI 功能每日有使用额度</p>
+    <p>由 Qoder 开发</p>
+  </footer>
+
+  <aside id="tourBubble" class="tour-bubble" role="dialog" aria-labelledby="tourText" aria-describedby="tourProgress" hidden>
+    <p id="tourProgress" class="tour-progress"></p>
+    <p id="tourText" aria-live="polite"></p>
+    <div class="tour-actions">
+      <button id="tourSkip" type="button">跳过</button>
+      <button id="tourNext" type="button">下一步</button>
+    </div>
+  </aside>
+  <script src="config.js"></script>
+  <script src="thermo.js"></script>
+  <script src="tour.js"></script>
+  <script src="quiz.js"></script>
+  <script src="compare.js"></script>
+</body>
+</html>
